@@ -43,11 +43,18 @@
   #minimap canvas { position: static; inset: auto; display: block; width: 100%; height: auto; }
   #minimap span { display: block; font-size: 11px; padding: 5px; }
   #record-result { position: fixed; z-index: 30; top: 70px; left: 50%; transform: translateX(-50%); padding: 12px; border-radius: 12px; background: #15223a; }
-  #release-notice { position: fixed; z-index: 35; top: 30%; left: 50%; transform: translateX(-50%);
-    width: min(340px, calc(100vw - 32px)); box-sizing: border-box; padding: 16px; border: 1px solid #84cfd8;
+  #release-notice { position: fixed; z-index: 35; top: calc(64px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
+    width: min(420px, calc(100vw - 24px)); max-height: calc(100dvh - 88px); overflow-y: auto;
+    box-sizing: border-box; padding: 16px; border: 1px solid #84cfd8;
     border-radius: 14px; background: #142336; box-shadow: 0 10px 40px #0008; }
   #release-notice p { margin: 8px 0 12px; font-size: 13px; line-height: 1.5; }
-  #release-notice button { margin-right: 8px; padding: 8px 12px; }
+  #release-notice small { color: #a8c4e8; margin-bottom: 10px; }
+  #release-notice small:not([hidden]) { display: block; }
+  #release-notice button { margin-right: 8px; padding: 10px 12px; min-height: 44px; cursor: pointer; }
+  #release-notice button:first-of-type { background: #a0e2e9; color: #112335; font-weight: 650; }
+  #release-badge { position: fixed; z-index: 35; top: calc(64px + env(safe-area-inset-top, 0px)); right: 12px;
+    padding: 10px 14px; min-height: 44px; background: #142336; color: #a0e2e9; border: 1px solid #84cfd8;
+    border-radius: 12px; cursor: pointer; }
   #record-result a { color: #a5efff; margin-right: 12px; }
   #record-result button { padding: 8px 12px; }
   #b-record.on { color: #ffaba5; border-color: #ffaba5; }

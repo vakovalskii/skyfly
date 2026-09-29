@@ -47,10 +47,10 @@ const num = (v, lim) => (Number.isFinite(+v) ? Math.max(-lim, Math.min(lim, +v))
 wss.on('connection', (ws, req) => {
   const id = nextId++;
   const p = { id, ws, name: `Герой${id}`, s: null, chatAt: 0, joined: false, joining: false };
-  // Trust X-Real-IP only from the local nginx proxy, not from arbitrary clients.
+  // Local nginx appends the real peer last; ignore spoofable client X-Real-IP.
   const peer = req.socket.remoteAddress;
   const ip = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(peer)
-    ? String(req.headers['x-real-ip'] || String(req.headers['x-forwarded-for'] || '').split(',').at(-1).trim() || peer) : peer;
+    ? String(req.headers['x-forwarded-for'] || '').split(',').at(-1).trim() || peer : peer;
   players.set(id, p);
   ws.send(JSON.stringify({ t: 'hi', id, build: BUILD }));
 

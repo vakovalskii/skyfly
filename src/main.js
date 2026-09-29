@@ -118,28 +118,38 @@ if (import.meta.env.PROD) createReleaseNotice({ current: __SKYFLY_RELEASE__, url
 createInput({ el: renderer.domElement, p: c, keys, mobile: MOBILE, onChat: hud.openChat, onHelp: hud.toggleHelp, onSound: hud.toggleSound });
 
 let editor = null;
-const heroReady = loadHero(import.meta.env.BASE_URL).then(async (factory) => {
-  makeBody = factory;
-  scene.remove(hero);
-  hero = makeBody();
-  hero.userData.character = c;
-  hero.userData.perfCat = 'герой';
-  scene.add(hero);
-  lighting?.setHero(hero);
-  players.setFactory(makeBody);
-  // Studio and its shortcuts/styles are excluded from the public build.
-  if (import.meta.env.DEV) {
-    const { createPoseEditor } = await import('./game/poseeditor.js');
-    editor = createPoseEditor({
-      hero: () => hero, character: c, camera, animations: factory.animations,
-      onToggle: (on) => say(on ? 'Редактор анимаций: P — закрыть' : 'Редактор закрыт'),
-    });
-    addEventListener('keydown', (ev) => {
-      if (ev.code === 'KeyP' && !/INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)) editor.toggle();
-    });
-    say('Модель героя загружена · P — редактор анимаций');
-  } else say('Модель героя загружена');
-}).catch((e) => say('модель героя не загрузилась: ' + e.message));
+let heroReady = null;
+function ensureHero() {
+  if (heroReady) return heroReady;
+  heroReady = loadHero(import.meta.env.BASE_URL).then(async (factory) => {
+    makeBody = factory;
+    scene.remove(hero);
+    hero.userData.dispose?.();
+    hero = makeBody();
+    hero.userData.character = c;
+    hero.userData.perfCat = 'герой';
+    scene.add(hero);
+    lighting?.setHero(hero);
+    players.setFactory(makeBody);
+    // Studio and its shortcuts/styles are excluded from the public build.
+    if (import.meta.env.DEV) {
+      const { createPoseEditor } = await import('./game/poseeditor.js');
+      editor = createPoseEditor({
+        hero: () => hero, character: c, camera, animations: factory.animations,
+        onToggle: (on) => say(on ? 'Редактор анимаций: P — закрыть' : 'Редактор закрыт'),
+      });
+      addEventListener('keydown', (ev) => {
+        if (ev.code === 'KeyP' && !/INPUT|TEXTAREA|SELECT/.test(ev.target.tagName)) editor.toggle();
+      });
+      say('Модель героя загружена · P — редактор анимаций');
+    } else say('Модель героя загружена');
+  }).catch(() => {
+    heroReady = null;
+    throw new Error('Герой не загрузился. Проверь соединение и нажми «Повторить».');
+  });
+  return heroReady;
+}
+ensureHero().catch(error => say(error.message));
 
 // ---------- события мира ----------
 const events = {
@@ -367,7 +377,7 @@ $('go').addEventListener('click', async () => {
     resume ??= saved;
     if (resume) { Object.assign(c, resume); c.vel = [0, 0, 0]; }
     status.textContent = 'Загружаем героя и анимации…';
-    await heroReady;
+    await ensureHero();
     status.textContent = 'Загружаем Москву и Санкт-Петербург…';
     const loaded = await Promise.all(['moscow', 'spb'].map(id => world.loadCity(id, import.meta.env.BASE_URL)));
     if (loaded.some(city => !city)) throw new Error('Город не загрузился. Нажми «Повторить».');
@@ -387,8 +397,11 @@ $('go').addEventListener('click', async () => {
   }
 });
 // G / кнопка «Сетка» — без текстур ↔ снимки и фасады (перезагрузка с сохранением места)
-const switchStyle = () => toggleStyle({ lat: c.lat, lon: c.lon, alt: c.alt, yaw: c.yaw, pitch: c.pitch, face: c.face,
-  mode: c.mode, grounded: c.grounded, vel: [...c.vel], power: c.power });
+const switchStyle = () => {
+  if (recording.active) { say('Сначала останови и сохрани запись видео, затем меняй оформление.'); return; }
+  toggleStyle({ lat: c.lat, lon: c.lon, alt: c.alt, yaw: c.yaw, pitch: c.pitch, face: c.face,
+    mode: c.mode, grounded: c.grounded, vel: [...c.vel], power: c.power });
+};
 $('b-style')?.addEventListener('click', switchStyle);
 if (GRID) $('b-style')?.classList.add('on');
 addEventListener('keydown', (ev) => { if (ev.code === 'KeyG' && !/INPUT|TEXTAREA|SELECT/.test(ev.target.tagName) && !editor?.open) switchStyle(); });

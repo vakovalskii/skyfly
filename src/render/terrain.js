@@ -240,6 +240,10 @@ export function createTerrain(scene, mobile = false) {
     },
     update(p, dt, budget = 2) {
       clock = performance.now();
+      // Above local coverage the globe supplies the surface. Keep cached height
+      // data for physics, but stop tile requests and coverage rebuilding entirely.
+      group.visible = p.alt < (terrainOpts.globe ? 30_000 : 45_000);
+      if (!group.visible) return { tiles: tiles.size, loading, shown: 0, edge: EDGE.value };
       // какие тайлы нужны
       const want = new Set();
       for (const [z, rad] of RINGS) {

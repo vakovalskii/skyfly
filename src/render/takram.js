@@ -280,7 +280,7 @@ export async function createTakram(renderer, scene, camera, base, mobile, onTime
     clouds.qualityPreset = lite || mobile ? 'low' : 'medium';
     clouds.lightShafts = !lite && !mobile;             // пресет сбрасывает лучи — ставим после него
     clouds.resolutionScale = lite ? 0.5 : 1;
-    raysPass.enabled = !lite;
+    raysPass.enabled = !lite && !orbital;
   }
   return {
     clouds, aerial, renderer, composer, exposure, carve, rays, photo, cityFog, setLite,
@@ -294,6 +294,7 @@ export async function createTakram(renderer, scene, camera, base, mobile, onTime
     update(c, sunOut, here = null) {
       const inOrbit = c.alt > (orbital ? 80000 : 100000);
       if (inOrbit !== orbital) { orbital = inOrbit; cloudPass.enabled = !orbital; link(); }
+      raysPass.enabled = !lite && c.alt < 60000;
       fogPass.enabled = c.alt < 30000;
       geo.set(THREE.MathUtils.degToRad(c.lon), THREE.MathUtils.degToRad(c.lat), c.alt).toECEF(ecef);
       Ellipsoid.WGS84.getEastNorthUpFrame(ecef, enu);

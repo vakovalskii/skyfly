@@ -34,8 +34,8 @@ export async function loadHero(base = '') {
       console.warn('Анимации проекта не загрузились, используются встроенные:', error);
     }
   }
-  const factory = () => {
-    const instance = makeInstance(gltf);
+  const factory = (options) => {
+    const instance = makeInstance(gltf, options);
     if (project) instance.userData.setSetup(project);
     return instance;
   };
@@ -43,7 +43,7 @@ export async function loadHero(base = '') {
   return factory;
 }
 
-function makeInstance(gltf) {
+function makeInstance(gltf, { remote = false } = {}) {
   const root = new THREE.Group();
   const model = cloneSkeleton(gltf.scene);
 
@@ -76,7 +76,18 @@ function makeInstance(gltf) {
   model.traverse((o) => { if (o.isBone) bones.set(o.name, o); });
 
   attachAnimationPlayer(root, model, pivot, gltf.animations, bones);
-  attachHeroCape(root, bones);
+  attachHeroCape(root, bones, { remote });
+  root.userData.dispose = () => {
+    root.userData.disposeAnimation();
+    const materials = new Set(), skeletons = new Set();
+    model.traverse(o => {
+      if (o.material) for (const material of [].concat(o.material)) materials.add(material);
+      if (o.skeleton) skeletons.add(o.skeleton);
+    });
+    materials.forEach(m => m.dispose());
+    skeletons.forEach(s => s.dispose());
+    // Geometry and textures belong to the loaded GLB and are shared by clones.
+  };
   root.userData.createPreview = () => makeInstance(gltf);
   return root;
 }

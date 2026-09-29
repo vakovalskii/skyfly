@@ -83,6 +83,7 @@ export function createLighting(scene, camera, renderer, mobile) {
     done.add(mat);
     const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey.call(mat);
     csm.setupMaterial(mat);
+    mat.addEventListener('dispose', () => csm.shaders.delete(mat));
     const csmHook = mat.onBeforeCompile;
     mat.onBeforeCompile = (sh, r) => {
       prev.call(mat, sh, r);
@@ -125,7 +126,7 @@ export function createLighting(scene, camera, renderer, mobile) {
       {
         // Prepare each newly streamed mesh BEFORE its first frame. Waiting 30 frames
         // briefly lit it with all cascade lights, producing a visible bright flash.
-        scene.traverse((o) => {
+        scene.traverseVisible((o) => {
           if (!o.isMesh || objects.has(o)) return;
           objects.add(o);
           let inHero = false, noCast = false;

@@ -133,7 +133,7 @@ export function createWorld(scene, mobile) {
         const [east, north, d] = offsetTo(c, city);
         city._off = [east, north, d];
         if (d < nearestD) { nearestD = d; nearest = city; }
-        const visible = d < FAR + 20_000;
+        const visible = c.alt < 30000 && d < FAR + 20_000;
         city.group.visible = visible;
         if (visible) {
           const above = c.alt - terrain.ground(c.lat, c.lon);
@@ -160,7 +160,7 @@ export function createWorld(scene, mobile) {
         c.alt += api.floorAt(0, 0) - oldFloor;
         for (const city of cities) city.group.position.y = -c.alt;
       }
-      landmark?.update(landmark.tile.mesh || landmark.tile.lodMesh, performance.now() / 1000, cityNight());
+      if (c.alt < 30000) landmark?.update(landmark.tile.mesh || landmark.tile.lodMesh, performance.now() / 1000, cityNight());
       trees.update(c, nearest, c.alt - terrain.ground(c.lat, c.lon));   // деревья — только у ближайшего города
       const tst = terrain.update(c, 0, mobile ? 2 : 4);
       api.terrainStat = tst;

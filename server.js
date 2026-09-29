@@ -1,5 +1,5 @@
 // WS-сервер «Полёта»: рассылает позиции 12 Гц и чат. Физику считает каждый клиент сам.
-// Запуск: node server.js (порт 8788). Прод: systemd skyfly-ws, nginx /fly-ws.
+// Запуск: node server.js (порт 8791 по умолчанию), маршрут /fly-ws.
 import { WebSocketServer } from 'ws';
 import { createPlayerStore, savedPosition } from './player-store.js';
 import { createNicknameModerator, normalizeNickname } from './nickname-moderation.js';
@@ -25,12 +25,12 @@ function readRelease() {
 }
 readRelease(); setInterval(readRelease, 30000).unref();
 const joinLimits = new Map();
-function mayJoin(ip) {
+function joinWait(ip) {
   const now = Date.now(), old = joinLimits.get(ip);
   const entry = old && old.until > now ? old : { count: 0, until: now + 60000 };
   joinLimits.set(ip, entry);
   for (const [key, value] of joinLimits) if (value.until <= now) joinLimits.delete(key);
-  return ++entry.count <= 12;
+  return ++entry.count <= 12 ? 0 : Math.max(1, Math.ceil((entry.until - now) / 1000));
 }
 const savePlayer = p => { if (p.key && owners.get(p.key) === p.id) store.save(p.key, p.saved); };
 setInterval(() => { try { store.flush(); } catch (e) { console.error('Position save failed:', e.message); } }, 5000).unref();
@@ -52,14 +52,20 @@ wss.on('connection', (ws, req) => {
   const ip = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(peer)
     ? String(req.headers['x-forwarded-for'] || '').split(',').at(-1).trim() || peer : peer;
   players.set(id, p);
+  ws.alive = true;
+  ws.on('pong', () => { ws.alive = true; });
+  // ws emits an error before close for invalid/oversized frames. It is not fatal to the service.
+  ws.on('error', () => {});
   ws.send(JSON.stringify({ t: 'hi', id, build: BUILD }));
 
   ws.on('message', async (raw) => {
     let m; try { m = JSON.parse(raw); } catch { return; }
     if (!m || typeof m !== 'object') return;
     if (m.t === 'join') {
-      if (p.joining || !mayJoin(ip)) {
-        ws.send(JSON.stringify({ t: 'join_error', code: 'rate', message: 'Слишком много попыток. Подожди минуту.' })); return;
+      if (p.joining) return;
+      const retryAfter = joinWait(ip);
+      if (retryAfter) {
+        ws.send(JSON.stringify({ t: 'join_error', code: 'rate', retryAfter, message: 'Слишком много попыток. Подожди минуту.' })); return;
       }
       p.joining = true;
       const candidate = normalizeNickname(m.name) || `Герой${id}`;
@@ -75,7 +81,13 @@ wss.on('connection', (ws, req) => {
       p.name = verdict.allowed ? candidate : `Герой${id}`;
       p.joined = true;
       p.clientRelease = typeof m.release === 'string' ? m.release : null;
-      p.key = store.key(m.token);
+      const nextKey = store.key(m.token);
+      if (nextKey !== p.key) {
+        savePlayer(p);
+        if (owners.get(p.key) === id) owners.delete(p.key);
+        p.key = nextKey;
+        p.saved = null; p.s = null;
+      }
       if (p.key) owners.set(p.key, id);
       ws.send(JSON.stringify({ t: 'joined', name: p.name, resume: p.key ? store.get(p.key) : null }));
       announceUpdate(p);
@@ -119,10 +131,18 @@ function broadcast(msg) {
 }
 
 const BUILD = Date.now();
+const heartbeat = setInterval(() => {
+  for (const ws of wss.clients) {
+    if (!ws.alive) { ws.terminate(); continue; }
+    ws.alive = false;
+    if (ws.readyState === 1) ws.ping();
+  }
+}, 25000);
+heartbeat.unref();
+wss.on('close', () => clearInterval(heartbeat));
 setInterval(() => {
   const list = [];
   for (const p of players.values()) if (p.s) list.push({ id: p.id, name: p.name, ...p.s });
-  if (!list.length) return;
   broadcast({ t: 'snap', players: list });
 }, 84);
 

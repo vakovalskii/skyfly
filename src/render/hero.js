@@ -121,5 +121,9 @@ export function makeHero({ scale = 1, cape = true } = {}) {
     }
   };
   root.userData.parts = parts;
+  root.userData.dispose = () => root.traverse(o => {
+    o.geometry?.dispose();
+    if (o.material) for (const material of [].concat(o.material)) material.dispose();
+  });
   return root;
 }

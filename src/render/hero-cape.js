@@ -3,7 +3,7 @@ import { createCapeCloth } from './cape-cloth.js';
 
 // Deterministic cloth silhouette for scrubbing; runtime adds inertia to the trailing direction.
 // The collar follows the shoulders. This is procedural cloth, not a rigid bone animation.
-export function attachHeroCape(root, bones) {
+export function attachHeroCape(root, bones, { remote = false } = {}) {
   const attachment = bones.get('DEF-spine003');
   // Three real skin vertices form the collar. Offsetting the whole cape made it float.
   const anchors = [-.17, 0, .17].map(x => {
@@ -37,7 +37,10 @@ export function attachHeroCape(root, bones) {
       a.lower.copy(attachment.worldToLocal(new THREE.Vector3(a.point.x, a.point.y - .11, backPlane)));
     }
   }
-  const columns = 24, rows = 36, geometry = new THREE.PlaneGeometry(1, 1, columns, rows);
+  // Other players keep the same cloth response with fewer particles. The local
+  // hero and studio retain the full-resolution cape.
+  const columns = remote ? 12 : 24, rows = remote ? 18 : 36;
+  const geometry = new THREE.PlaneGeometry(1, 1, columns, rows);
   const cloth = createCapeCloth(columns, rows);
   const targets = new Float32Array(geometry.attributes.position.array.length);
   const material = new THREE.MeshPhysicalMaterial({ color: 0xa31329, roughness: .8, metalness: 0,

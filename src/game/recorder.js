@@ -13,6 +13,7 @@ export function createRecorder({ canvas, audio, character, say }) {
   result.lastChild.onclick=()=>{result.hidden=true;if(lastURL){URL.revokeObjectURL(lastURL);lastURL=null;}};
   const stop = () => { if(recorder?.state==='recording'){recorder.stop();button.disabled=true;button.textContent='Сохраняем…';} };
   function release() {
+    if (recorder) recorder.ondataavailable = recorder.onerror = recorder.onstop = null;
     clearTimeout(timer);stream?.getVideoTracks().forEach(track=>track.stop());mix?.dispose();
     recorder=null;stream=null;mix=null;context=null;recordingCanvas=null;starting=false;
     button.disabled=false;button.textContent='● Запись';button.classList.remove('on');button.setAttribute('aria-pressed','false');
@@ -28,17 +29,25 @@ export function createRecorder({ canvas, audio, character, say }) {
       const scale=Math.min(1,1920/canvas.width,1080/canvas.height);
       recordingCanvas.width=Math.max(2,Math.floor(canvas.width*scale/2)*2);recordingCanvas.height=Math.max(2,Math.floor(canvas.height*scale/2)*2);
       context=recordingCanvas.getContext('2d',{alpha:false});
-      const video=recordingCanvas.captureStream(30);stream=new MediaStream([...video.getVideoTracks(),...mix.stream.getAudioTracks()]);
+      stream=recordingCanvas.captureStream(30);
+      for (const track of mix.stream.getAudioTracks()) stream.addTrack(track);
       recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:6000000,audioBitsPerSecond:128000});
       chunks=[];bytes=0;start=performance.now();last=0;
       recorder.ondataavailable=e=>{if(e.data.size){chunks.push(e.data);bytes+=e.data.size;if(bytes>200*1024*1024)stop();}};
-      recorder.onerror=()=>{say('Запись прервалась. Попробуй ещё раз.');release();};
+      let failed = false;
+      recorder.onerror=()=>{
+        failed = true; button.disabled = true; button.textContent = 'Сохраняем…';
+        say('Запись прервалась — сохраняем доступную часть.');
+        // MediaRecorder delivers final dataavailable and stop after error. Keep the
+        // session locked until those events, so it cannot overwrite a newer recording.
+      };
       recorder.onstop=()=>{
+        if (!bytes) { chunks=[]; release(); say('Не удалось записать видео. Попробуй ещё раз.'); return; }
         const blob=new Blob(chunks,{type:mime});chunks=[];
         if(lastURL)URL.revokeObjectURL(lastURL);lastURL=URL.createObjectURL(blob);
         const link=result.firstChild;link.href=lastURL;link.download=`skyfly-${new Date().toISOString().replace(/[:.]/g,'-')}.${mime.includes('mp4')?'mp4':'webm'}`;
         link.textContent=`Скачать видео · ${(blob.size/1048576).toFixed(1)} МБ`;result.hidden=false;
-        release();link.click();say('Видео готово — кнопка скачивания доступна на экране');
+        release();link.click();say(failed ? 'Сохранена доступная часть видео — проверь запись.' : 'Видео готово — кнопка скачивания доступна на экране');
       };
       recorder.start(1000);timer=setTimeout(stop,300000);button.disabled=false;button.classList.add('on');button.setAttribute('aria-pressed','true');
       say(audio.on?'Запись началась — со звуком игры':'Запись началась. Звук выключен кнопкой динамика');
@@ -49,7 +58,8 @@ export function createRecorder({ canvas, audio, character, say }) {
     const w=recordingCanvas.width,h=recordingCanvas.height;
     context.fillStyle='#000';context.fillRect(0,0,w,h);
     const scale=Math.min(w/canvas.width,h/canvas.height),dw=canvas.width*scale,dh=canvas.height*scale;
-    context.drawImage(canvas,(w-dw)/2,(h-dh)/2,dw,dh);
+    try { context.drawImage(canvas,(w-dw)/2,(h-dh)/2,dw,dh); }
+    catch { stop(); say('Захват изображения прервался. Останавливаем запись.'); return; }
     const seconds=Math.floor((now-start)/1000),stamp=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
     button.textContent=`■ Стоп ${stamp}`;
     context.fillStyle='rgba(8,14,26,.6)';context.fillRect(16,16,190,40);context.fillStyle='#e3edff';context.font='bold 18px sans-serif';

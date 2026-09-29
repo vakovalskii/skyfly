@@ -1,0 +1,77 @@
+#pose-editor-launch { position: fixed; z-index: 11; right: 14px; top: 92px; padding: 9px 13px; border: 1px solid #496582; border-radius: 7px; background: #122335; color: #edf3fa; cursor: pointer; font: 12px system-ui; }
+#pose-editor-start { padding: 10px 16px; border: 1px solid #486475; border-radius: 7px; color: #b9e8ef; background: #132432; cursor: pointer; font: 13px system-ui; }
+body.mobile #bar #pose-editor-launch { display: block; }
+#ped { position: fixed; inset: 0; z-index: 100; display: grid; grid-template-rows: 62px minmax(0,1fr) 234px 30px; background: #111820; color: #e1e9f1; font: 13px/1.4 system-ui,sans-serif; text-align: left; touch-action: auto; color-scheme: dark; }
+#ped[hidden] { display: none; }
+#ped * { box-sizing: border-box; }
+#ped button, #ped input, #ped select { font: inherit; }
+#ped button { border: 1px solid #3c4c5d; border-radius: 5px; padding: 7px 10px; color: #e1e9f1; background: #202d3b; cursor: pointer; }
+#ped button:hover { background: #2c3e50; }
+#ped button[aria-pressed=true] { border-color: #81d3df; }
+#ped button:disabled { opacity: .38; cursor: default; }
+#ped button:focus-visible, #ped input:focus-visible, #ped select:focus-visible { outline: 2px solid #90d9ec; outline-offset: 2px; }
+#ped .primary { background: #81d3df; border-color: #81d3df; color: #0a2530; font-weight: 650; }
+#ped input:not([type=range]):not([type=checkbox]), #ped select { width: 100%; min-width: 0; padding: 7px; border: 1px solid #3c4c5d; border-radius: 4px; background: #111b26; color: #e1e9f1; user-select: text; }
+#ped input[type=range] { width: 100%; accent-color: #81d3df; }
+#ped input[type=checkbox] { accent-color: #81d3df; }
+#ped header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; border-bottom: 1px solid #304052; }
+#ped h1 { font-size: 16px; font-weight: 650; margin: 0; }
+#ped h2 { margin: 0 0 12px; font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .1em; color: #9caec0; }
+#ped .ped-subtitle { color: #93a5b8; font-size: 11px; margin: 3px 0 0; }
+#ped .ped-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+#ped .ped-workspace { display: grid; grid-template-columns: 230px minmax(220px,1fr) 270px; min-height: 0; }
+#ped aside { padding: 17px 15px; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
+#ped .ped-actions { border-right: 1px solid #304052; }
+#ped .ped-inspector { border-left: 1px solid #304052; }
+#ped .ped-state { display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 3px 0; border-color: transparent; background: transparent; text-align: left; }
+#ped .ped-state[aria-pressed=true] { border-color: #46616c; background: #213944; color: #b2f1f4; }
+#ped .ped-state small { font-size: 10px; color: #97b0be; }
+#ped .ped-field { display: block; margin: 12px 0; }
+#ped .ped-field > span { display: block; color: #a8b9c9; font-size: 12px; margin-bottom: 5px; }
+#ped .ped-section { border-top: 1px solid #304052; margin-top: 18px; padding-top: 16px; }
+#ped .ped-hint { font-size: 11px; color: #9aaec1; line-height: 1.6; }
+#ped .ped-stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #17232e; }
+#ped .ped-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; touch-action: none; }
+#ped .ped-view-tools { position: absolute; z-index: 1; left: 12px; top: 12px; display: flex; flex-wrap: wrap; gap: 5px; }
+#ped .ped-stage-caption { position: absolute; left: 14px; bottom: 12px; color: #9cb1c3; font-size: 11px; pointer-events: none; }
+#ped .ped-axis { display: grid; grid-template-columns: 14px minmax(30px,1fr) 66px; align-items: center; gap: 8px; margin: 8px 0; }
+#ped .ped-axis b { color: #9ed9e3; font-size: 12px; }
+#ped .ped-axis input[type=number] { padding: 4px; }
+#ped .ped-timeline { padding: 12px 20px; border-top: 1px solid #304052; min-width: 0; }
+#ped .ped-timebar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+#ped .ped-timebar label { display: flex; align-items: center; gap: 5px; color: #a8b9c9; }
+#ped .ped-timebar input[type=number] { width: 74px; }
+#ped .ped-track { display: flex; align-items: center; gap: 12px; margin-top: 9px; }
+#ped .ped-track input { flex: 1; }
+#ped output { font-variant-numeric: tabular-nums; color: #bce7eb; }
+#ped .ped-frames { display: flex; gap: 5px; overflow-x: auto; height: 96px; padding: 2px 0; }
+#ped .ped-frames button { flex: 0 0 auto; font-size: 11px; padding: 3px; width: 104px; display: grid; justify-items: center; gap: 2px; cursor: grab; }
+#ped .ped-frames img { display: block; width: 96px; height: 66px; object-fit: contain; border-radius: 3px; pointer-events: none; }
+#ped .ped-frames .drop-target { outline: 2px solid #81d3df; background: #375d68; }
+#ped .ped-frame-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 5px 0; font-size: 11px; color: #9aaec1; }
+#ped .ped-frame-tools label { display: flex; align-items: center; gap: 6px; }
+#ped .ped-frame-tools input[type=number] { width: 80px; padding: 3px; }
+#ped .ped-frame-tools button { padding: 3px 9px; }
+#ped .ped-frames button[aria-pressed=true] { background: #375d68; border-color: #81d3df; }
+#ped footer { display: flex; justify-content: space-between; padding: 5px 20px; background: #0c131b; color: #9fb5c6; font-size: 11px; }
+#ped footer .error { color: #ffb6a9; }
+#ped .ped-danger { color: #ffb6a9; }
+@media (max-width: 1000px) { #ped .ped-workspace { grid-template-columns: 175px minmax(150px,1fr) 225px; } #ped aside { padding: 12px 10px; } #ped header { padding: 8px 12px; } #ped .ped-subtitle { display: none; } }
+@media (max-width: 700px) { #ped { grid-template-rows: auto minmax(0,1fr) auto 34px; } #ped header { align-items: flex-start; flex-wrap: wrap; gap: 6px; } #ped .ped-workspace { grid-template-columns: 1fr 1fr; grid-template-rows: minmax(180px,40vh) minmax(110px,1fr); overflow: hidden; } #ped .ped-stage { grid-column: 1 / -1; grid-row: 1; } #ped .ped-actions, #ped .ped-inspector { grid-row: 2; } #ped .ped-timeline { padding: 8px 10px; } #ped footer { padding: 5px 10px; } #ped .ped-keyhint { display: none; } #ped .ped-state { padding: 5px; } }
+
+@media (pointer: coarse) {
+  #ped button, #ped select { min-height: 40px; }
+  #ped input:not([type=range]):not([type=checkbox]), #ped select { font-size: 16px; }
+  #ped { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+  #ped .ped-timeline { max-height: 32dvh; overflow-y: auto; touch-action: pan-y; }
+  #ped .ped-frames { touch-action: pan-x; }
+}
+@media (pointer: coarse) and (max-height: 500px) {
+  #ped { grid-template-rows: auto minmax(120px,1fr) minmax(65px,28dvh) 24px; }
+  #ped header { padding: 4px 8px; }
+  #ped h1 { display: none; }
+  #ped .ped-workspace { grid-template-columns: 135px minmax(160px,1fr) 190px; grid-template-rows: 1fr; }
+  #ped .ped-stage { grid-column: 2; grid-row: 1; }
+  #ped .ped-actions { grid-column: 1; grid-row: 1; }
+  #ped .ped-inspector { grid-column: 3; grid-row: 1; }
+}

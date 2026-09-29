@@ -1,0 +1,60 @@
+SKYFLY — PROPRIETARY NON-COMMERCIAL TERMS
+Version 1.0, 29 September 2026
+
+Copyright (c) 2026 Skyfly contributors and the respective rights holders.
+All rights reserved.
+
+1. Scope
+These terms apply only to the original Skyfly code, documentation, and other
+materials for which the publisher holds the relevant rights (the "Project").
+This is a proprietary, source-visible project, not open-source software.
+Third-party materials are excluded as explained in section 5.
+
+2. Limited permission
+You may view the published source for informational purposes. You may play the
+publisher's publicly hosted game for personal, non-commercial entertainment,
+including the temporary browser copies necessary to do so. You may record and
+share your own non-commercial gameplay videos; this permission does not permit
+extracting or redistributing the source code, models, textures, audio, or other
+assets separately. Third-party rights remain applicable.
+
+3. Restrictions
+Except for section 2, section 5, rights required by applicable law, or a separate
+written permission from the relevant rights holder, no permission is granted to:
+- copy, download for reuse, redistribute, republish, sublicense, sell, rent, or
+  otherwise distribute the Project or substantial parts of it;
+- modify, incorporate into another product, or create derivative works of the
+  Project;
+- deploy or operate a separate instance of the Project;
+- use the Project commercially, including paid access, advertising-supported
+  services, sale of copies/assets, or use in commercial products or services.
+Non-commercial intent alone does not grant permission for these activities.
+Access to the repository and technical ability to download are not a grant of
+additional rights. Contact the repository owner for separate permission.
+
+4. Hosting-platform rights
+These terms do not revoke rights expressly granted to GitHub or its users by the
+applicable GitHub Terms of Service, including viewing and forking a public
+repository within GitHub. A platform fork does not itself grant additional
+rights to redistribute, deploy, modify, or commercially exploit the Project
+outside those platform rights. https://docs.github.com/site-policy/github-terms
+
+5. Third-party components and rights
+Third-party software, models, animations, sounds, geographic data and other
+materials retain their original licenses and notices. These proprietary terms
+do not impose additional restrictions on rights granted by those licenses.
+See THIRD_PARTY_NOTICES.md and the notices in public/. No rights in third-party
+characters, names, trademarks or likenesses are granted by this document.
+
+6. Disclaimer
+To the extent permitted by applicable law, the Project is provided "AS IS",
+without warranties of any kind, and its rights holders are not liable for
+damages arising from its use. Nothing in these terms limits rights or remedies
+that cannot lawfully be excluded.
+
+Краткое пояснение: исходники доступны для ознакомления, проект не является
+open source. Коммерческое использование, копирование для повторного использования,
+изменение, самостоятельное развёртывание и распространение без письменного
+разрешения запрещены с указанными выше исключениями. Разрешены личная
+некоммерческая игра на сайте автора и публикация своих некоммерческих игровых
+видео. Лицензии сторонних компонентов и права по условиям GitHub сохраняются.

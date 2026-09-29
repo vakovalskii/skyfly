@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a1020">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>ПОЛЁТ · Москва — Петербург</title>
+<style>
+  :root { --pad: env(safe-area-inset-bottom, 0px); }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #060a14; color: #dce6f5;
+    font: 14px/1.4 -apple-system, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+    overscroll-behavior: none; touch-action: none; user-select: none; }
+  canvas { display: block; position: fixed; inset: 0; z-index: 0; }
+  /* весь интерфейс — поверх полотна, иначе canvas его перекрывает */
+  #hud, #log, #tags, #touch, #chat-input { z-index: 4; }
+
+  /* ---------- HUD: слева вверху — только главное ---------- */
+  #hud { position: fixed; left: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); pointer-events: none; min-width: 168px; }
+  .card { background: rgba(8,14,26,.66); border: 1px solid rgba(130,180,255,.16); border-radius: 12px; padding: 9px 12px; }
+  #hud .row { display: flex; gap: 8px; align-items: baseline; }
+  #hud b { font-size: 22px; font-weight: 650; letter-spacing: .2px; font-variant-numeric: tabular-nums; }
+  #hud .spd { font-size: 15px; color: #cfe0f5; font-variant-numeric: tabular-nums; margin-top: 1px; }
+  #hud small { color: #8fa6c8; font-size: 11px; }
+  .barwrap { width: 100%; height: 6px; border-radius: 3px; background: rgba(255,255,255,.1); overflow: hidden; margin-top: 8px; }
+  .bar { height: 100%; width: 100%; background: linear-gradient(90deg, #4fc3ff, #8affd2); transition: width .2s; }
+  .bar.low { background: linear-gradient(90deg, #ffb84f, #ff7a4f); }
+  .bar.out { background: #ff4f4f; }
+  #h-zone { display: inline-block; margin-top: 8px; padding: 2px 8px; border-radius: 999px; font-size: 11px;
+    color: #bfe6ff; background: rgba(79,195,255,.14); }
+  #h-meta { margin-top: 6px; font-size: 10px; color: #6f86a8; }
+
+  /* ---------- справа вверху: одна строка, ничего не налезает ---------- */
+  #bar { position: fixed; right: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); z-index: 6;
+    display: flex; gap: 6px; align-items: stretch; }
+  #bar > * { height: 34px; }
+  #compass { display: flex; align-items: center; gap: 6px; padding: 0 11px; border-radius: 10px; cursor: pointer; }
+  #minimap { position: fixed; left: 12px; bottom: calc(74px + var(--pad)); z-index: 4; width: 180px; padding: 0;
+    overflow: hidden; background: #101c2c; color: #d8eaff; border: 1px solid #476078; border-radius: 12px; cursor: pointer; }
+  #minimap canvas { position: static; inset: auto; display: block; width: 100%; height: auto; }
+  #minimap span { display: block; font-size: 11px; padding: 5px; }
+  #record-result { position: fixed; z-index: 30; top: 70px; left: 50%; transform: translateX(-50%); padding: 12px; border-radius: 12px; background: #15223a; }
+  #release-notice { position: fixed; z-index: 35; top: 30%; left: 50%; transform: translateX(-50%);
+    width: min(340px, calc(100vw - 32px)); box-sizing: border-box; padding: 16px; border: 1px solid #84cfd8;
+    border-radius: 14px; background: #142336; box-shadow: 0 10px 40px #0008; }
+  #release-notice p { margin: 8px 0 12px; font-size: 13px; line-height: 1.5; }
+  #release-notice button { margin-right: 8px; padding: 8px 12px; }
+  #record-result a { color: #a5efff; margin-right: 12px; }
+  #record-result button { padding: 8px 12px; }
+  #b-record.on { color: #ffaba5; border-color: #ffaba5; }
+  body:not(.mobile) #log { left: 206px; }
+  body.mobile #minimap { left: auto; right: var(--edge-right); top: 164px; bottom: auto; width: 112px; }
+  @media (max-height: 500px) and (orientation: landscape) { body.mobile #minimap { top: 76px; } }
+  #h-arrow { font-size: 15px; line-height: 1; transition: transform .15s linear; color: #9fd8ff; }
+  #h-city { font-size: 12px; color: #cfe0f5; white-space: nowrap; }
+  #bar button, #bar #pose-editor-launch { position: static; margin: 0; padding: 0 11px; border-radius: 10px;
+    border: 1px solid rgba(130,180,255,.2); background: rgba(8,14,26,.66); color: #dce6f5;
+    font: 500 12px/1 -apple-system, system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+  #bar button:hover, #bar #pose-editor-launch:hover { border-color: rgba(159,216,255,.6); }
+  #bar button.on { background: rgba(80,160,255,.5); border-color: #9fd8ff; }
+  #bar kbd { font: 600 10px/1 ui-monospace, monospace; color: #8fa6c8; margin-left: 4px; }
+  #b-snd { width: 38px; padding: 0 !important; font-size: 14px !important; }
+  body:not(.mobile) #b-chat, body:not(.mobile) #b-help { display: none; }
+  body.mobile #b-look, body.mobile #pose-editor-launch { display: none; }
+  body.mobile #h-city { max-width: 30vw; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ---------- подсказка снизу: меняется по режиму ---------- */
+  #keys { position: fixed; left: 50%; bottom: calc(16px + var(--pad)); transform: translateX(-50%); z-index: 4;
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; max-width: calc(100vw - 24px);
+    padding: 7px 14px; border-radius: 999px; background: rgba(8,14,26,.62); border: 1px solid rgba(130,180,255,.14);
+    font-size: 14px; color: #e3edff; pointer-events: none; transition: opacity .4s; width: max-content; }
+  #keys span { white-space: nowrap; }
+  #keys kbd, #help kbd { display: inline-block; min-width: 18px; padding: 1px 5px; margin-right: 4px; border-radius: 5px; text-align: center;
+    border: 1px solid #4d6a94; background: #15223a; font: 600 11px/1.4 ui-monospace, monospace; color: #e3edff; }
+  body.mobile #keys { bottom: calc(var(--pad) + var(--control) * 2 + 34px); border-radius: 12px;
+    padding: 8px 10px; font-size: 12px; background: rgba(8,14,26,.82); }
+
+  #log { position: fixed; left: 12px; bottom: calc(96px + var(--pad)); display: flex; flex-direction: column-reverse;
+    gap: 4px; pointer-events: none; font-size: 12px; color: #a8c4e8; max-width: 70vw; }
+  #log div { background: rgba(8,14,26,.55); padding: 3px 8px; border-radius: 8px; transition: opacity .8s; }
+  #log div.fade { opacity: 0; }
+  #tags { position: fixed; inset: 0; pointer-events: none; }
+
+  /* поток воздуха по краям экрана и вспышка на хлопке */
+  #rush { position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 2;
+    background: radial-gradient(58% 48% at 50% 50%, rgba(255,255,255,0) 55%, rgba(190,225,255,.5) 100%); }
+  #flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 3; background: #dff0ff; }
+  .tag { position: absolute; transform: translate(-50%, -140%); font-size: 11px; color: #cfe6ff;
+    background: rgba(8,14,26,.6); padding: 1px 6px; border-radius: 6px; white-space: nowrap; }
+
+  /* ---------- кнопки телефона ---------- */
+  #touch { display: none; position: fixed; inset: 0; pointer-events: none; }
+  body.mobile #touch { display: block; }
+  #touch button { position: fixed; pointer-events: auto; border: 1px solid rgba(140,190,255,.28); background: rgba(10,18,32,.55);
+    color: #dce6f5; border-radius: 999px; font-size: 13px; font-weight: 600; padding: 0; }
+  #b-thrust { right: 16px; bottom: calc(22px + var(--pad)); width: 104px; height: 104px; font-size: 15px; }
+  #b-boost { right: 128px; bottom: calc(96px + var(--pad)); width: 74px; height: 74px; }
+  #b-brake { right: 128px; bottom: calc(16px + var(--pad)); width: 74px; height: 66px; }
+  #b-up { left: 16px; bottom: calc(96px + var(--pad)); width: 88px; height: 88px; border-color: rgba(255,200,120,.4); }
+  #b-down { left: 16px; bottom: calc(20px + var(--pad)); width: 88px; height: 68px; }
+  #b-slam { left: 114px; bottom: calc(20px + var(--pad)); width: 88px; height: 68px; }
+  #touch button.on { background: rgba(80,160,255,.55); border-color: #9fd8ff; }
+  #chat-input { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(150px + var(--pad));
+    width: min(520px, 86vw); padding: 10px 12px; border-radius: 10px; border: 1px solid #47628f;
+    background: rgba(6,12,22,.92); color: #eaf2ff; font-size: 15px; }
+
+  /* ---------- стартовый экран ---------- */
+  #start { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; background: radial-gradient(120% 90% at 50% 12%, #16325e 0%, #070c18 60%); padding: 20px; text-align: center; z-index: 10; }
+  #start h1 { margin: 0; font-size: clamp(30px, 9vw, 62px); letter-spacing: 6px; font-weight: 800;
+    background: linear-gradient(180deg, #eaf4ff, #7fb6ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #start p { margin: 0; color: #9fb6d8; max-width: 440px; font-size: 14px; }
+  #nick { padding: 11px 14px; border-radius: 10px; border: 1px solid #3c5a86; background: #0b1424; color: #eaf2ff;
+    font-size: 16px; width: min(280px, 80vw); text-align: center; }
+  #go { padding: 14px 40px; border-radius: 12px; border: 1px solid #6fb2ff; background: linear-gradient(180deg, #2f6ddb, #1b4796);
+    color: #fff; font-size: 17px; font-weight: 700; letter-spacing: 1px; }
+  .keys { color: #7f9cc4; font-size: 12px; line-height: 1.7; }
+  /* прицел в центре — видно, куда полетишь */
+  #aim { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; z-index: 4;
+    border-radius: 50%; background: rgba(210,235,255,.75); box-shadow: 0 0 6px rgba(140,200,255,.8); display: none; }
+  body:not(.mobile) #aim.show { display: block; }
+  /* полоса зарядки взлёта — по центру над руками */
+  #charge { position: fixed; left: 50%; bottom: calc(180px + var(--pad)); transform: translateX(-50%); z-index: 5;
+    text-align: center; font-size: 12px; letter-spacing: 2px; min-width: 200px; }
+  #help { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100vw - 32px));
+    z-index: 8; font-size: 13px; padding: 14px 18px; background: rgba(8,14,26,.92); }
+  #help h3 { margin: 0 0 8px; font-size: 15px; }
+  #help dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; margin: 0; }
+  #help dt { text-align: right; } #help dd { margin: 0; color: #c3d3ea; }
+  #help .sec { grid-column: 1 / -1; margin-top: 6px; color: #7fb6ff; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+  #help .cred { margin-top: 12px; color: #6f86a8; font-size: 10.5px; }
+
+  .touch-help { display: none; }
+  #help-close { float: right; width: 44px; height: 44px; color: inherit; background: #15223a; border: 1px solid #47628f; border-radius: 8px; }
+  body.mobile { --edge-left: max(10px, env(safe-area-inset-left)); --edge-right: max(10px, env(safe-area-inset-right)); --control: clamp(56px, calc((100vw - 56px) / 4), 72px); }
+  body.mobile #hud { left: var(--edge-left); width: 134px; min-width: 0; padding: 8px; }
+  body.mobile #hud b { font-size: 19px; }
+  body.mobile #h-meta { max-width: 135px; }
+  body.mobile #bar { right: var(--edge-right); gap: 4px; }
+  body.mobile #bar > * { min-height: 44px; }
+  body.mobile #bar kbd { display: none; }
+  body.mobile #bar button { min-width: 44px; padding: 0 8px; }
+  body.mobile #touch button { width: var(--control); height: var(--control); font-size: 11px; touch-action: none; }
+  body.mobile #b-up, body.mobile #b-down { left: var(--edge-left); }
+  body.mobile #b-fly, body.mobile #b-slam { left: calc(var(--edge-left) + var(--control) + 8px); }
+  body.mobile #b-thrust, body.mobile #b-brake { right: var(--edge-right); }
+  body.mobile #b-boost, body.mobile #b-back { right: calc(var(--edge-right) + var(--control) + 8px); }
+  body.mobile #b-up, body.mobile #b-fly, body.mobile #b-thrust, body.mobile #b-boost { bottom: calc(var(--pad) + var(--control) + 22px); }
+  body.mobile #b-down, body.mobile #b-slam, body.mobile #b-back, body.mobile #b-brake { bottom: calc(var(--pad) + 14px); }
+  body.mobile #log { bottom: calc(var(--pad) + var(--control) * 2 + 112px); font-size: 10px; max-width: 60vw; }
+  body.mobile #log div:nth-child(n+3) { display: none; }
+  body.mobile #charge { bottom: calc(var(--pad) + var(--control) * 2 + 76px); min-width: 150px; }
+  body.mobile #help { max-height: 75dvh; overflow-y: auto; touch-action: pan-y; }
+  body.mobile #help dl, body.mobile #start .keys { display: none; }
+  body.mobile .touch-help { display: block; line-height: 1.65; }
+  body.mobile #start { overflow-y: auto; padding-top: max(16px, env(safe-area-inset-top)); padding-bottom: max(16px, env(safe-area-inset-bottom)); gap: 10px; }
+  @media (max-width: 600px) {
+    body.mobile:has(#pose-editor-launch) #minimap { top: 218px; }
+    body.mobile #bar { display: grid; grid-template-columns: repeat(3, minmax(44px,1fr)); width: calc(100vw - 170px); min-width: 142px; }
+    body.mobile #compass { grid-column: span 2; padding: 0 6px; }
+    body.mobile #bar #pose-editor-launch { grid-column: 1 / -1; }
+    body.mobile #b-snd { grid-column: 3; grid-row: 2; width: 100%; }
+    body.mobile #b-record { grid-column: 1 / -1; grid-row: 3; }
+    body.mobile #h-city { max-width: 84px; }
+  }
+  @media (max-height: 500px) and (orientation: landscape) {
+    body.mobile { --control: 56px; }
+    body.mobile #start { gap: 6px; }
+    body.mobile #start h1 { font-size: 30px; }
+    body.mobile #start p { font-size: 12px; }
+    body.mobile #go { padding: 10px 30px; }
+    body.mobile #hud .barwrap, body.mobile #h-meta { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="tags"></div>
+<div id="rush"></div>
+<div id="flash"></div>
+
+<div id="hud" class="card">
+  <div class="row"><b id="h-alt">0 м</b><small>высота</small></div>
+  <div class="spd" id="h-spd">0 км/ч</div>
+  <div class="barwrap" title="сила"><div id="h-pow" class="bar"></div></div>
+  <div id="h-zone">на земле</div>
+  <div id="h-meta"><span id="h-pow-n">100%</span> силы · <span id="h-net">нет связи</span> · <span id="h-fps">60 fps</span></div>
+</div>
+
+<div id="bar">
+  <button id="compass" class="card" type="button"><span id="h-arrow">▲</span><span id="h-city">—</span></button>
+  <button id="b-look">Мышь<kbd>V</kbd></button>
+  <button id="b-style" title="Сетка без текстур / снимки и фасады">Сетка<kbd>G</kbd></button>
+  <button id="b-chat">✉</button>
+  <button id="b-help">?</button>
+  <button id="b-snd">🔊</button>
+</div>
+<div id="keys" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<div id="log"></div>
+<input id="chat-input" hidden placeholder="сообщение… (Enter — отправить)" maxlength="120">
+
+<div id="touch">
+  <button id="b-thrust">ВПЕРЁД</button>
+  <button id="b-back">НАЗАД</button>
+  <button id="b-fly">ПОЛЁТ</button>
+  <button id="b-boost">ФОРСАЖ</button>
+  <button id="b-brake">СТОП</button>
+  <button id="b-up">ВВЕРХ</button>
+  <button id="b-down">ВНИЗ</button>
+  <button id="b-slam">УДАР</button>
+</div>
+<div id="aim"></div>
+<div id="charge" class="card" hidden><b>ПРЫЖОК <span id="charge-h"></span></b><div class="barwrap"><div id="charge-b" class="bar"></div></div></div>
+
+<div id="help" class="card" hidden>
+  <button id="help-close" aria-label="Закрыть помощь">✕</button><h3>Управление</h3>
+  <p class="touch-help">Тяни свободное место экрана — обзор. «Вперёд» + «Форсаж» — разгон. «Прыжок» — оттолкнуться, в воздухе повторное нажатие включает полёт. В полёте «Вверх» поднимает даже без движения вперёд. «Падать» отключает полёт, «Удар» направляет к земле. Можно держать несколько кнопок одновременно.</p>
+  <dl>
+    <div class="sec">На земле</div>
+    <dt><kbd>W</kbd><kbd>S</kbd></dt><dd>вперёд / назад</dd>
+    <dt><kbd>A</kbd><kbd>D</kbd></dt><dd>поворот</dd>
+    <dt><kbd>Q</kbd><kbd>E</kbd></dt><dd>шаг вбок</dd>
+    <dt><kbd>Shift</kbd></dt><dd>бег; держать — разгон до сверхбега 45 м/с (160 км/ч)</dd>
+    <dt><kbd>Space</kbd></dt><dd>прыжок · держи дольше — выше, до 500 м (полоска покажет высоту)</dd>
+    <div class="sec">В воздухе и в полёте</div>
+    <dt><kbd>Space</kbd></dt><dd>в падении — включить полёт · в полёте держать — вверх · у земли садится сам</dd>
+    <dt><kbd>W</kbd></dt><dd>лететь туда, куда смотришь</dd>
+    <dt><kbd>Ctrl</kbd> <kbd>C</kbd></dt><dd>вниз · в падении — нырок головой, падаем быстрее</dd>
+    <dt><kbd>F</kbd></dt><dd>выключить полёт и падать · в падении — снова лететь</dd>
+    <dt><kbd>Shift</kbd></dt><dd>форсаж — до сверхзвука</dd>
+    <dt><kbd>X</kbd></dt><dd>тормоз</dd>
+    <dt><kbd>R</kbd></dt><dd>в воздухе — удар в землю · F / Space до контакта отменяет пике</dd>
+    <div class="sec">Прочее</div>
+    <dt><kbd>Клик</kbd> <kbd>V</kbd></dt><dd>включить мышь: двигай, чтобы смотреть и выбирать направление полёта; W — лететь туда, куда смотришь. Esc — вернуть курсор. Стрелки и трекпад тоже крутят вид.</dd>
+    <dt><kbd>Enter</kbd> <kbd>N</kbd></dt><dd>чат · звук</dd>
+    <dt><kbd>T</kbd></dt><dd>время суток +1 час (Shift+T — назад)</dd>
+    <dt><kbd>G</kbd></dt><dd>сетка без текстур ↔ снимки и фасады</dd>
+    <dt><kbd>I</kbd></dt><dd>статистика отрисовки: вызовы, треугольники, время видеокарты, дальности</dd>
+    <dt><kbd>H</kbd></dt><dd>закрыть эту справку</dd>
+  </dl>
+  <div class="cred">Сила тратится только в полёте, выше 100 км восстанавливается. Модель героя — Quaternius (CC-BY), карта © OpenStreetMap, снимки — Esri, рельеф — AWS Terrain Tiles.</div>
+</div>
+
+<div id="start">
+  <h1>ПОЛЁТ</h1>
+  <p>Москва и Петербург, 634 километра между ними. Внизу воздух жжёт силу, наверху — тишина и покой.</p>
+  <input id="nick" placeholder="позывной" maxlength="14">
+  <button id="go">В НЕБО</button>
+  <p id="start-status" role="status" aria-live="polite"></p>
+  <div class="keys">компьютер: WASD — идти, пробел — прыжок и полёт<br>клик по игре / V — рулить мышью · W — лететь по взгляду · Esc — вернуть курсор<br>H — все клавиши · телефон: пальцем ведёшь взгляд, кнопки по краям</div>
+</div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
